@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile authenticated with Google Sign-in",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Multi-turn Gemini chat conversation history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "modelKey": { "type": "string" },
+        "role": { "type": "string" },
+        "systemInstruction": { "type": "string" },
+        "messages": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "messages"]
+    },
+    "Creation": {
+      "title": "Creation",
+      "description": "User generated assets including Music, Images, Videos, and Transcriptions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["music", "image", "video", "transcription"] },
+        "prompt": { "type": "string" },
+        "modelUsed": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "metadata": { "type": "object" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document containing authentication info"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Persistent chat threads for each user"
+    },
+    "/users/{userId}/creations/{creationId}": {
+      "schema": "Creation",
+      "description": "Saved music, image, video, and audio transcriptions"
+    }
+  }
+}

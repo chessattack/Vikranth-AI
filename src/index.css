@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+.font-serif {
+  font-family: 'Instrument Serif', Georgia, Cambria, 'Times New Roman', Times, serif;
+}
+
+.font-sans {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Custom scrollbar for Sublime/VS Code editor and chat */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 140, 130, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 140, 130, 0.45);
+}
+
+/* ========================================================
+   VS Code Dark+ Authentic Theme & Syntax Tokens
+   ======================================================== */
+.vscode-theme {
+  color: #D4D4D4;
+}
+
+.vscode-theme .token.comment,
+.vscode-theme .token.block-comment,
+.vscode-theme .token.prolog,
+.vscode-theme .token.doctype,
+.vscode-theme .token.cdata {
+  color: #6A9955 !important;
+  font-style: italic;
+}
+
+.vscode-theme .token.punctuation {
+  color: #D4D4D4 !important;
+}
+
+.vscode-theme .token.tag,
+.vscode-theme .token.tag .token.tag-id {
+  color: #569CD6 !important;
+}
+
+.vscode-theme .token.tag .token.punctuation {
+  color: #808080 !important;
+}
+
+.vscode-theme .token.attr-name {
+  color: #9CDCFE !important;
+}
+
+.vscode-theme .token.attr-value,
+.vscode-theme .token.attr-value .token.punctuation {
+  color: #CE9178 !important;
+}
+
+.vscode-theme .token.string,
+.vscode-theme .token.char,
+.vscode-theme .token.template-string {
+  color: #CE9178 !important;
+}
+
+.vscode-theme .token.number,
+.vscode-theme .token.boolean {
+  color: #B5CEA8 !important;
+}
+
+.vscode-theme .token.keyword,
+.vscode-theme .token.atrule {
+  color: #C586C0 !important;
+}
+
+.vscode-theme .token.selector {
+  color: #D7BA7D !important;
+}
+
+.vscode-theme .token.property {
+  color: #9CDCFE !important;
+}
+
+.vscode-theme .token.function,
+.vscode-theme .token.function-name {
+  color: #DCDCAA !important;
+}
+
+.vscode-theme .token.class-name,
+.vscode-theme .token.maybe-class-name {
+  color: #4EC9B0 !important;
+}
+
+.vscode-theme .token.variable,
+.vscode-theme .token.parameter {
+  color: #9CDCFE !important;
+}
+
+.vscode-theme .token.constant {
+  color: #4FC1FF !important;
+}
+
+.vscode-theme .token.operator {
+  color: #D4D4D4 !important;
+}
+
+.vscode-theme .token.regex {
+  color: #D16969 !important;
+}
+
+.vscode-theme .token.important,
+.vscode-theme .token.bold {
+  font-weight: bold;
+}
+
+.vscode-theme .token.italic {
+  font-style: italic;
+}
+
