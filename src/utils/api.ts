@@ -1,6 +1,3 @@
-export const LIVE_BACKEND_URL =
-  'https://ais-pre-mtg3tdgb56wt2oh7u3czon-48622829419.asia-southeast1.run.app';
-
 export const BACKEND_URL =
   typeof window !== 'undefined'
     ? ((import.meta.env as any).VITE_BACKEND_URL || '').trim().replace(/\/$/, '')
@@ -8,68 +5,40 @@ export const BACKEND_URL =
 
 /**
  * Resolves the API endpoint URL.
- * Automatically points to the live backend server on Cloud Run when running
- * on static hosts (like Firebase Hosting *.web.app, *.firebaseapp.com) or localhost.
+ * In full-stack mode, relative endpoints like /api/chat connect directly
+ * to the running server on the same origin.
  */
 export const getApiUrl = (endpoint: string): string => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const isFirebaseHosting =
-      hostname.endsWith('web.app') ||
-      hostname.endsWith('firebaseapp.com') ||
-      hostname.includes('firebase');
-
-    if (isFirebaseHosting) {
-      const base = BACKEND_URL || LIVE_BACKEND_URL;
-      return `${base}${cleanEndpoint}`;
-    }
-
-    if (BACKEND_URL) {
-      return `${BACKEND_URL}${cleanEndpoint}`;
-    }
+  if (BACKEND_URL) {
+    return `${BACKEND_URL}${cleanEndpoint}`;
   }
 
   return cleanEndpoint;
 };
 
 /**
- * Enhanced fetch wrapper with timeout (30s), automatic 1-retry on network blips,
- * and automatic fallback to the live full-stack backend if a static host returns HTML.
+ * Enhanced fetch wrapper with timeout (30s) and automatic 1-retry on network blips.
  */
 export const fetchApi = async (
   endpoint: string,
   options: RequestInit = {},
   retries = 1,
-  timeoutMs = 30000
+  timeoutMs = 45000
 ): Promise<Response> => {
-  const primaryUrl = getApiUrl(endpoint);
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const fallbackUrl = `${LIVE_BACKEND_URL}${cleanEndpoint}`;
+  const url = getApiUrl(endpoint);
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(primaryUrl, {
+      const response = await fetch(url, {
         ...options,
         signal: controller.signal,
       });
       clearTimeout(timer);
-
-      // If a static web server intercepted the route and returned index.html,
-      // transparently retry against the live Cloud Run backend URL!
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('text/html') && primaryUrl !== fallbackUrl) {
-        console.warn(`[Vikranth AI] Endpoint ${primaryUrl} returned HTML; falling back to live backend: ${fallbackUrl}`);
-        const fallbackRes = await fetch(fallbackUrl, {
-          ...options,
-        });
-        return fallbackRes;
-      }
-
       return response;
     } catch (err: any) {
       clearTimeout(timer);
@@ -82,16 +51,6 @@ export const fetchApi = async (
       if (attempt < retries && (isNetwork || isAbort)) {
         await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
         continue;
-      }
-
-      // If primary fetch failed, try direct live backend
-      if (primaryUrl !== fallbackUrl) {
-        try {
-          const fallbackRes = await fetch(fallbackUrl, { ...options });
-          return fallbackRes;
-        } catch {
-          // fall through
-        }
       }
 
       if (isAbort) {
@@ -114,16 +73,15 @@ export const formatApiError = (err: any): string => {
     msg.includes('Failed to fetch') ||
     msg.includes('unable to fetch') ||
     msg.includes('NetworkError') ||
-    msg.includes('fetch failed') ||
-    msg.includes('HTML document')
+    msg.includes('fetch failed')
   ) {
-    return 'Unable to reach the AI engine right now. Please verify your internet connection or click retry.';
+    return 'Unable to reach the AI engine right now. Please verify your internet connection and try again.';
   }
   return msg;
 };
 
 /**
- * Robust JSON parser that NEVER throws HTML errors to the user.
+ * Robust JSON parser that handles responses cleanly.
  */
 export const safeParseJsonResponse = async (res: Response): Promise<{ data: any; isHtml: boolean; rawText: string }> => {
   const contentType = res.headers.get('content-type') || '';
@@ -145,7 +103,7 @@ export const safeParseJsonResponse = async (res: Response): Promise<{ data: any;
 
   if (isHtml) {
     return {
-      data: { error: 'The AI engine is temporarily reconnecting. Please send your message again.' },
+      data: { error: 'The server returned an unexpected response. Please try your message again.' },
       isHtml: true,
       rawText: text,
     };

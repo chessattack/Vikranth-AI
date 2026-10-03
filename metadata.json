@@ -1,6 +1,6 @@
 {
   "name": "Vikranth AI",
-  "description": "Vikranth AI is an autonomous agent and coding platform powered by 15 specialized models with multi-key failover, code exploration, interactive preview, and agent task execution.",
+  "description": "Vikranth AI is an autonomous agent and coding platform with full code exploration, interactive live preview, and intelligent task execution.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

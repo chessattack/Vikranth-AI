@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import http from 'http';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
@@ -65,22 +66,28 @@ export const MODEL_REGISTRY: Record<string, { originalName: string; premiumName:
 
 /**
  * Multi-model resilient executor with per-model timeout and automatic cascading fallback:
- * 1st: requested model (up to 8s)
- * 2nd: gemini-3.1-flash-lite (fast sub-second recovery)
- * 3rd: gemini-3.8-flash (flagship multimodal)
+ * 1st: requested model (up to 25s)
+ * 2nd: gemini-3.5-flash (massive capacity, ultra-stable workhorse)
+ * 3rd: gemini-3.1-flash-lite (fast sub-second recovery)
+ * 4th: gemini-flash-latest (latest stable general flash alias)
  */
 async function generateWithModelFallback(
   preferredModel: string,
   contents: any,
   config?: any,
-  timeoutMs = 8000
+  timeoutMs = 25000
 ): Promise<{ text: string; modelUsed: string }> {
   let normalized = preferredModel || 'gemini-3.8-flash';
   if (!MODEL_REGISTRY[normalized]) {
     normalized = 'gemini-3.8-flash';
   }
 
-  const candidateModels = [normalized, 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+  const candidateModels = [
+    normalized,
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+  ];
   const uniqueCandidates = [...new Set(candidateModels)];
 
   let lastError: any;
@@ -109,8 +116,8 @@ async function generateWithModelFallback(
     } catch (err: any) {
       lastError = err;
       const status = err.status || err.statusCode || 0;
-      const msg = (err.message || '').slice(0, 100);
-      console.warn(`[Vikranth AI] Model ${modelToTry} attempt failed (${status || 'timeout'}): ${msg}. Trying next fallback candidate...`);
+      const msg = (err.message || '').slice(0, 120);
+      console.warn(`[Vikranth AI] Model ${modelToTry} attempt failed (${status || 'error'}): ${msg}. Trying next fallback candidate...`);
     }
   }
 
@@ -202,7 +209,7 @@ Never output placeholders, truncated ellipsis, or fake dummy mockups. Produce re
       systemInstruction: systemPrompt,
     };
 
-    const result = await generateWithModelFallback(targetModel, contents, config, 8000);
+    const result = await generateWithModelFallback(targetModel, contents, config, 25000);
 
     const usedModel = result.modelUsed || targetModel;
     res.json({
@@ -220,6 +227,9 @@ Never output placeholders, truncated ellipsis, or fake dummy mockups. Produce re
       }
     } catch {
       // not json
+    }
+    if (cleanMessage.includes('Timeout') || cleanMessage.includes('503') || cleanMessage.includes('demand')) {
+      cleanMessage = 'The AI model is experiencing a high-demand spike. Please try sending your message again.';
     }
     res.status(500).json({ error: cleanMessage });
   }
@@ -264,7 +274,7 @@ Also provide a concise list of bugs found and what you fixed.`;
       targetModel,
       [{ role: 'user', parts: [{ text: `${filesPayload}\n\n${agentPrompt}` }] }],
       fixConfig,
-      12000
+      30000
     );
 
     const usedModel = result.modelUsed || targetModel;
@@ -284,6 +294,9 @@ Also provide a concise list of bugs found and what you fixed.`;
     } catch {
       // not json
     }
+    if (cleanMessage.includes('Timeout') || cleanMessage.includes('503') || cleanMessage.includes('demand')) {
+      cleanMessage = 'The AI model is experiencing a high-demand spike. Please try sending your request again.';
+    }
     res.status(500).json({ error: cleanMessage });
   }
 });
@@ -296,24 +309,31 @@ app.all('/api/*', (_req: Request, res: Response) => {
 // Full-stack Vite dev middleware or production static serving
 async function startServer() {
   const server = http.createServer(app);
+  const distPath = path.resolve(__dirname, 'dist');
+  const hasDist = fs.existsSync(path.resolve(distPath, 'index.html'));
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'production' || hasDist) {
+    app.use(express.static(distPath));
+    app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(path.resolve(distPath, 'index.html'));
+    });
+  } else {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-    });
   }
 
-  server.listen(PORT, () => {
-    console.log(`[Vikranth AI] Server running on http://0.0.0.0:${PORT}`);
+  const numericPort = Number(PORT) || 3000;
+  server.listen(numericPort, () => {
+    console.log(`[Vikranth AI] Server running on port ${numericPort}`);
   });
 }
 
-startServer();
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+export default app;
